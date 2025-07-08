@@ -1,38 +1,27 @@
-name: Node.js CI
+name: Deploy to Kubesa
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
-  build:
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        node-version: [20.12.2]
+  build-and-deploy:
+    runs-on: ubuntu-latest
     
-    env:
-      NEXT_PUBLIC_FIREBASE_API_KEY: ${{secrets.NEXT_PUBLIC_FIREBASE_API_KEY}}
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}}
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID}}
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}}
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}}
-      NEXT_PUBLIC_FIREBASE_APP_ID: ${{secrets.NEXT_PUBLIC_FIREBASE_APP_ID}}
-      NEXT_PUBLIC_SMTP_HOST: ${{secrets.NEXT_PUBLIC_SMTP_HOST}}
-      NEXT_PUBLIC_SMTP_PORT: ${{secrets.NEXT_PUBLIC_SMTP_PORT}}
-      NEXT_PUBLIC_SMTP_USER: ${{secrets.NEXT_PUBLIC_SMTP_USER}}
-      NEXT_PUBLIC_SMTP_PASSWORD: ${{secrets.NEXT_PUBLIC_SMTP_PASSWORD}}
-      NEXT_PUBLIC_SMTP_FROM_EMAIL: ${{secrets.NEXT_PUBLIC_SMTP_FROM_EMAIL}}
-      
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - name: Change directory
-      run: cd /home/pesolosep/actions-runner/_work/makarapreneur/makarapreneur
-    - run: pm2 restart makarapreneur
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Deploy to Kubesa
+        run: |
+          echo "Triggering deployment..."          
+          curl -X POST https://kubernetes-deployment-platform-main.52bda5.app.isacitra.com/api/v1/deployments/git \
+            -H "Content-Type: application/json" \
+            -d '{
+              "serviceId": "dd517b7a-53f6-4038-a9c6-803a15e1abe9",
+              "apiKey": "${{ secrets.KUBESA_API_KEY }}",
+              "commitId": "${{ github.sha }}",
+              "commitMessage": "${{ github.event.head_commit.message }}"
+            }'
+          
+          echo "Deployment initiated. Check deployment status and logs in the Kubesa web interface."
